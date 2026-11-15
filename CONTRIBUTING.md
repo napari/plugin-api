@@ -35,7 +35,16 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]"
 ```
 
-3. Run the development server
+3. Get the data. The generated JSON lives in
+   [napari/plugin-api-data](https://github.com/napari/plugin-api-data). Clone
+   it into `public/`, where every script expects it. `--depth 1` fetches only
+   the latest snapshot; leave it out for the full history since 2022 (~230 MB):
+
+```bash
+git clone --depth 1 https://github.com/napari/plugin-api-data public
+```
+
+4. Run the development server
 ```bash
 npm run dev
 ```

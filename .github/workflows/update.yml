@@ -7,6 +7,11 @@ on:
     # "every 2 hours"
     - cron: 0 */2 * * *
 
+# Two runs must never commit to napari/plugin-api-data at the same time.
+concurrency:
+  group: update-plugin-index-${{ github.event_name == 'pull_request' && github.ref || 'data' }}
+  cancel-in-progress: false
+
 jobs:
   fetch:
     name: Fetch
@@ -20,6 +25,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # The generated JSON lives in napari/plugin-api-data. Check it out into
+      # public/, where every script reads and writes it. DATA_DEPLOY_KEY is a
+      # deploy key with write access to that repository only; without it (on
+      # pull requests from forks) the checkout is read-only, which is all a
+      # pull request needs.
+      - name: Check out napari/plugin-api-data into public/
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: napari/plugin-api-data
+          path: public
+          ssh-key: ${{ secrets.DATA_DEPLOY_KEY }}
 
       - id: auth
         name: Authenticate to Google Cloud
@@ -55,17 +74,21 @@ jobs:
           GH_API_TOKEN: ${{ secrets.GH_API_TOKEN }}
           CODECOV_API_TOKEN: ${{ secrets.CODECOV_API_TOKEN }}
 
-      # push changes back to the repo, this will trigger a new vercel build
+      # Invalid data is never committed or deployed.
+      - name: Validate the data
+        run: |
+          python -m pytest tests/test_output.py -q
+
+      # Commit the new data to napari/plugin-api-data. Skip on PRs: they only
+      # validate.
       # https://github.com/stefanzweifel/git-auto-commit-action
-      # skip on PRs - we only want to validate, not modify the PR
       - uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7.1.0
         if: github.event_name != 'pull_request'
         with:
+          repository: public
           commit_message: '[bot] Update Plugin Index'
           commit_author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
 
-      # prepare static files for gh-pages deployment
-      # do this AFTER the vercel commit to make sure we're not messing with anything
       - name: Prepare gh-pages
         run: |
           python scripts/prepare_gh_pages.py
