@@ -19,5 +19,9 @@
   //   { "pattern": "api.napari.org", "custom_domain": true },
   //   { "pattern": "api.napari-hub.org", "custom_domain": true }
   // ],
+  // npe2api.<account>.workers.dev, and pr-<number>-npe2api.<account>.workers.dev
+  // for previews uploaded from pull requests.
+  "workers_dev": true,
+  "preview_urls": true,
   "observability": { "enabled": true }
 }
