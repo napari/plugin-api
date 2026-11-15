@@ -1,0 +1,23 @@
+// Cloudflare configuration for the npe2api Worker.
+// Docs: https://developers.cloudflare.com/workers/static-assets/
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "npe2api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    // Built by `python scripts/build_site.py` from the data branch.
+    "directory": "../site",
+    "binding": "ASSETS",
+    // Files are served without running the Worker. Only a request that
+    // matches no file reaches src/index.js.
+    "not_found_handling": "none"
+  },
+  // The hostnames are attached in the Cloudflare dashboard or here once the
+  // DNS zones are confirmed (napari-plans: canonical hostname ticket).
+  // "routes": [
+  //   { "pattern": "api.napari.org", "custom_domain": true },
+  //   { "pattern": "api.napari-hub.org", "custom_domain": true }
+  // ],
+  "observability": { "enabled": true }
+}
