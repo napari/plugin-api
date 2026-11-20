@@ -89,7 +89,7 @@ jobs:
           commit_message: '[bot] Update Plugin Index'
           commit_author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
 
-      - name: Prepare gh-pages
+      - name: Build the static site
         run: |
           python scripts/build_site.py --out site
 

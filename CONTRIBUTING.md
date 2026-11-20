@@ -1,34 +1,44 @@
-# Contributing to npe2api
+# Contributing to plugin-api
 
-Thank you for your interest in contributing to npe2api! This guide will help you get started with development and contributions.
+Thank you for your interest in contributing to plugin-api! This guide will help you get started with development and contributions.
 
 ## Overview
 
-npe2api is the REST API used by napari to query plugins. It provides a fully static API hosted on Vercel that aggregates and serves metadata about napari plugins registered on PyPI.
+plugin-api is the REST API used by napari to query plugins. It aggregates
+metadata about napari plugins registered on PyPI and conda-forge, and serves
+it as a static site from Cloudflare.
+
+The repository has two parts:
+
+- **Python scripts** (`scripts/`) that fetch and validate plugin data, and
+  build it into a static site.
+- **A small Cloudflare Worker** (`worker/`) that answers the few requests a
+  static file cannot. See [worker/README.md](worker/README.md).
+
+The generated data lives in its own repository,
+[napari/plugin-api-data](https://github.com/napari/plugin-api-data).
 
 ## Development setup
 
 ### Prerequisites
 - Python 3.13+
+- Node.js 22+ (only to run the Worker locally)
 - Git
 
 ### Getting started
 
 1. Fork and clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/npe2api.git
-cd npe2api
+git clone https://github.com/YOUR_USERNAME/plugin-api.git
+cd plugin-api
 ```
 
 2. Install the Python dependencies
 
 ```bash
-# Create and activate a virtual environment
 python -m venv .venv
 source .venv/bin/activate
-
-# Install Python package in editable mode with development dependencies
-python -m pip install -e ".[dev]"
+python -m pip install -r requirements.txt
 ```
 
 3. Get the data. The generated JSON lives in
@@ -40,6 +50,15 @@ python -m pip install -e ".[dev]"
 git clone --depth 1 https://github.com/napari/plugin-api-data public
 ```
 
+4. Build and serve the API locally
+
+```bash
+python scripts/build_site.py     # writes site/
+cd worker
+npm ci
+npx wrangler dev                 # http://localhost:8787
+```
+
 ## Development tasks
 
 ### Running Tests
@@ -47,13 +66,18 @@ git clone --depth 1 https://github.com/napari/plugin-api-data public
 Before submitting changes, ensure all tests pass:
 
 ```bash
-# Run Python tests to validate manifest data
-pytest tests/test_output.py
+# Validate the data and test the site build
+pytest tests/
 
 # Run Python linting and formatting
 ruff check .        # Check for linting issues
 ruff format .       # Format code
 
+# Test the Worker
+cd worker && npm test
+
+# Compare a deployment with the live API
+python scripts/check_parity.py --candidate http://localhost:8787
 ```
 
 ### Executing scripts
@@ -75,10 +99,10 @@ python scripts/reindex.py
 
 #### API endpoints
 
-The API endpoints are implemented in `pages/api/`:
-- `plugins.js` - Plugin index
-- `extended_summary.js` - Plugin summaries
-- `conda.js` - Conda package mapping
+Every endpoint is a file written by `scripts/build_site.py`. To add or change
+an endpoint, change that script. Only behaviour that cannot be a file (name
+normalization, unknown plugins, `/api/conda`, the `api.napari-hub.org` host)
+belongs in `worker/src/index.js`.
 
 #### Data processing scripts
 
@@ -86,42 +110,48 @@ Core scripts in `scripts/`:
 - `bigquery.py` - Queries BigQuery for napari plugins
 - `fetch_manifests.py` - Downloads plugin manifests
 - `reindex.py` - Validates and aggregates plugin data
+- `build_site.py` - Writes every API path as a static file
+- `check_parity.py` - Compares two deployments of the API
 
 ## How this repo works
 
-1. [The fetch action](.github/workflows/fetch.yml) is triggered by:
-    - any push to the `main` branch
+1. [The update action](.github/workflows/update.yml) is triggered by:
     - a cron job every 2 hours
-    - a `workflow_dispatch` triggered manually from the [actions page](https://github.com/napari/npe2api/actions/workflows/fetch.yml)
-2. When triggered, the fetch action
-    1. installs `npe2`
-    2. calls `npe2 fetch --all -o public/manifest` which
-        - fetches all current napari plugin manifests
-        - places them into the [`public/manifest`](public/manifest/) directory
-        - records any fetch errors in [`public/manifest/errors.json`](public/errors.json)
-    3. runs [`scripts/reindex.py`](scripts/reindex.py) which validates the manifests and builds any aggregates/indices.
-    4. commits these changes to the `main` branch using [`git-auto-commit-action`](https://github.com/stefanzweifel/git-auto-commit-action)
-3. This triggers vercel to build the (fully static) API and deploy to
-   <https://npe2api.vercel.app>
+    - a pull request (validation and a preview only)
+    - a `workflow_dispatch` triggered manually from the [actions page](https://github.com/napari/plugin-api/actions/workflows/update.yml)
+2. When triggered, the update action
+    1. checks out napari/plugin-api-data into `public/`
+    2. finds plugins with BigQuery and fetches their manifests
+    3. runs [`scripts/reindex.py`](scripts/reindex.py), which validates the manifests and builds the indices
+    4. validates the result with `tests/test_output.py`
+    5. commits the data to napari/plugin-api-data
+    6. builds the site with [`scripts/build_site.py`](scripts/build_site.py)
+    7. deploys it to Cloudflare (<https://api.napari.org>)
 
-### Development endpoints
+`npe2api.vercel.app`, the hostname older napari releases use, redirects to
+`api.napari.org` from [napari/npe2api](https://github.com/napari/npe2api).
 
- - <https://npe2api.vercel.app/api/plugins>
+### Endpoints
+
+ - <https://api.napari.org/api/plugins>
      - map of {plugin_names -> version}
- - <https://npe2api.vercel.app/api/extended_summary>
+ - <https://api.napari.org/api/extended_summary>
      - all basic plugin info needed to populate the plugin browser in napari
      - summary endpoint has been removed. Use extended_summary instead.
- - [https://npe2api.vercel.app/api/manifest/{plugin-name}](https://npe2api.vercel.app/api/manifest/napari-animation)
+ - [https://api.napari.org/api/manifest/{plugin-name}](https://api.napari.org/api/manifest/napari-animation)
      - the full manifest for a given plugin
- - <https://npe2api.vercel.app/api/conda>
+ - <https://api.napari.org/api/conda-map>
      - map of {pypi_name -> conda_channel/package_name}
- - [https://npe2api.vercel.app/api/pypi/{plugin-name}](https://npe2api.vercel.app/api/pypi/napari-animation)
+     - `/api/conda` is the deprecated name, kept for released napari versions
+ - [https://api.napari.org/api/pypi/{plugin-name}](https://api.napari.org/api/pypi/napari-animation)
      - PyPI info for a plugin.
- - [https://npe2api.vercel.app/api/conda/{plugin-name}](https://npe2api.vercel.app/api/conda/napari-animation)
+ - [https://api.napari.org/api/conda/{plugin-name}](https://api.napari.org/api/conda/napari-animation)
      - conda info for a plugin. *name is pypi_name, not conda-name*
- - <https://npe2api.vercel.app/errors.json>
+ - [https://api.napari.org/api/shields/{plugin-name}](https://api.napari.org/api/shields/napari-animation)
+     - a [shields.io endpoint](https://shields.io/badges/endpoint-badge) badge
+ - <https://api.napari.org/errors.json>
      - errors encountered during the last fetch
- - <https://npe2api.vercel.app/readers.json> *(example ... may change)*
+ - <https://api.napari.org/api/readers>
      - lookup of filename pattern to reader
 
 ## Questions and issues
@@ -135,4 +165,4 @@ Core scripts in `scripts/`:
 - [napari plugin documentation](https://napari.org/plugins/)
 - [npe2 documentation](https://github.com/napari/npe2)
 
-Thank you for contributing to npe2api!
+Thank you for contributing to plugin-api!

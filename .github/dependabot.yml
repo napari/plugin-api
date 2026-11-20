@@ -12,3 +12,10 @@ updates:
       github-actions:
         patterns:
           - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/worker"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci(dependabot):"
