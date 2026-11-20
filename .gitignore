@@ -39,3 +39,6 @@ yarn-error.log*
 # Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json
 *.pyc
+
+# generated data: a clone of napari/plugin-api-data (see CONTRIBUTING.md)
+/public/
