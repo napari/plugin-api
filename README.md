@@ -1,7 +1,5 @@
 # plugin-api
 
-[![vercel](https://img.shields.io/github/deployments/napari/npe2api/production?label=vercel&logo=vercel&style=flat-square)](https://api.napari.org)
-
 The REST API used by [napari-hub.org](https://napari-hub.org) to query plugins.
 
 The endpoint for the API is: <https://api.napari.org>

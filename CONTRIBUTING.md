@@ -9,7 +9,6 @@ npe2api is the REST API used by napari to query plugins. It provides a fully sta
 ## Development setup
 
 ### Prerequisites
-- Node.js and npm
 - Python 3.13+
 - Git
 
@@ -21,12 +20,9 @@ git clone https://github.com/YOUR_USERNAME/npe2api.git
 cd npe2api
 ```
 
-2. Install dependencies. You will need `npm` for the Node.js dependencies. First install [`nvm`](https://github.com/nvm-sh/nvm), then use it to install `npm` with `nvm install node`. After that, install the dependencies with:
+2. Install the Python dependencies
 
 ```bash
-# Install Node.js dependencies
-npm install
-
 # Create and activate a virtual environment
 python -m venv .venv
 source .venv/bin/activate
@@ -44,13 +40,6 @@ python -m pip install -e ".[dev]"
 git clone --depth 1 https://github.com/napari/plugin-api-data public
 ```
 
-4. Run the development server
-```bash
-npm run dev
-```
-
-The API will be available at `http://localhost:3000`
-
 ## Development tasks
 
 ### Running Tests
@@ -65,8 +54,6 @@ pytest tests/test_output.py
 ruff check .        # Check for linting issues
 ruff format .       # Format code
 
-# Run JavaScript linting
-npm run lint
 ```
 
 ### Executing scripts
