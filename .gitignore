@@ -15,6 +15,7 @@
 # production
 /build
 /gh-pages
+/site
 
 # misc
 .DS_Store
