@@ -19,7 +19,7 @@ jobs:
         shell: bash -el {0}
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - id: auth
         name: Authenticate to Google Cloud
@@ -28,7 +28,7 @@ jobs:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
       # reindex requires conda to be setup
-      - uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+      - uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           auto-activate-base: true
           activate-environment: ""
@@ -58,7 +58,7 @@ jobs:
       # push changes back to the repo, this will trigger a new vercel build
       # https://github.com/stefanzweifel/git-auto-commit-action
       # skip on PRs - we only want to validate, not modify the PR
-      - uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7.1.0
+      - uses: stefanzweifel/git-auto-commit-action@d0b01107b5db882071f96de5dd4b54961ea93f4c # v7.2.1
         if: github.event_name != 'pull_request'
         with:
           commit_message: '[bot] Update Plugin Index'
@@ -73,7 +73,7 @@ jobs:
       # upload gh-pages artifact for PRs (for inspection)
       - name: Upload gh-pages artifact
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gh-pages-preview
           path: ./gh-pages
